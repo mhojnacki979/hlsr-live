@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Anton, Barlow, Playfair_Display, Saira_Condensed } from 'next/font/google'
+import { asset } from '@/lib/asset'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -37,7 +38,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const fontClasses = `${playfair.variable} ${barlow.variable} ${saira.variable} ${anton.variable}`
   return (
     <html lang="en" className={fontClasses}>
-      <body>{children}</body>
+      <body>
+        {/* Ranching & Wildlife step-and-repeat. Inline background-image so the
+            deployment base path is applied; CSS url() would not get it. */}
+        <div
+          className="brand-backdrop"
+          aria-hidden="true"
+          style={{ backgroundImage: `url(${asset('/brand/ranching-wildlife-tile.png')})` }}
+        />
+        {children}
+      </body>
     </html>
   )
 }
