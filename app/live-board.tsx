@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DivisionBracket } from '@/components/event/division-bracket'
 import type { EventDivision } from '@/data/events'
 import { asset } from '@/lib/asset'
 import { fetchLive } from '@/lib/eos'
 import type { LiveTournament } from '@/lib/live-config'
-import { useAutoScroll } from '@/lib/use-auto-scroll'
+import { RESUME_AFTER_IDLE_MS, useAutoScroll } from '@/lib/use-auto-scroll'
 
 const POLL_MS = 20_000
 /** Standings shown for a class that has not started eliminations yet. */
@@ -38,19 +38,40 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [autoScroll, setAutoScroll] = useState(true)
+  const pausedByButton = useRef(false)
+  const resumeTimer = useRef<number | null>(null)
 
   useAutoScroll(autoScroll)
 
-  // A viewer taking over on a phone stops the loop until they hand it back.
+  // A viewer scrolling by hand takes over, then the loop resumes once they stop.
+  // Without the timer a single stray trackpad nudge would park the board forever.
   useEffect(() => {
-    const yield_ = (): void => setAutoScroll(false)
-    window.addEventListener('wheel', yield_, { passive: true })
-    window.addEventListener('touchstart', yield_, { passive: true })
+    const onInteract = (): void => {
+      if (pausedByButton.current) return
+      setAutoScroll(false)
+      if (resumeTimer.current !== null) window.clearTimeout(resumeTimer.current)
+      resumeTimer.current = window.setTimeout(() => setAutoScroll(true), RESUME_AFTER_IDLE_MS)
+    }
+    window.addEventListener('wheel', onInteract, { passive: true })
+    window.addEventListener('touchstart', onInteract, { passive: true })
     return () => {
-      window.removeEventListener('wheel', yield_)
-      window.removeEventListener('touchstart', yield_)
+      window.removeEventListener('wheel', onInteract)
+      window.removeEventListener('touchstart', onInteract)
+      if (resumeTimer.current !== null) window.clearTimeout(resumeTimer.current)
     }
   }, [])
+
+  /** Explicit Pause always wins over the idle-resume timer. */
+  const toggleAutoScroll = (): void => {
+    if (resumeTimer.current !== null) {
+      window.clearTimeout(resumeTimer.current)
+      resumeTimer.current = null
+    }
+    setAutoScroll((on) => {
+      pausedByButton.current = on
+      return !on
+    })
+  }
 
   useEffect(() => {
     if (tournament === null) return
@@ -109,7 +130,7 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
             <button
               type="button"
               className="board-toggle"
-              onClick={() => setAutoScroll((on) => !on)}
+              onClick={toggleAutoScroll}
             >
               {autoScroll ? 'Pause' : 'Auto-scroll'}
             </button>
