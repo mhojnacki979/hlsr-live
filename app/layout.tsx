@@ -1,14 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import { Anton, Barlow, Playfair_Display, Saira_Condensed } from 'next/font/google'
-import { asset } from '@/lib/asset'
+import { Anton, Barlow, Saira_Condensed } from 'next/font/google'
 import './globals.css'
-
-const playfair = Playfair_Display({
-  weight: ['700', '800', '900'],
-  subsets: ['latin'],
-  variable: '--font-playfair',
-})
 
 const barlow = Barlow({
   weight: ['400', '500', '600', '700'],
@@ -29,25 +22,16 @@ const anton = Anton({
 })
 
 export const metadata: Metadata = {
-  title: 'HLSR Archery — Live Brackets',
+  title: 'Houston Livestock Show and Rodeo Archery — Live Brackets',
   description:
     'Live bracket board for the Houston Livestock Show & Rodeo Archery Competition — every class, updating as they shoot. Powered by Eyes on Score.',
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const fontClasses = `${playfair.variable} ${barlow.variable} ${saira.variable} ${anton.variable}`
+  const fontClasses = `${barlow.variable} ${saira.variable} ${anton.variable}`
   return (
     <html lang="en" className={fontClasses}>
-      <body>
-        {/* Ranching & Wildlife step-and-repeat. Inline background-image so the
-            deployment base path is applied; CSS url() would not get it. */}
-        <div
-          className="brand-backdrop"
-          aria-hidden="true"
-          style={{ backgroundImage: `url(${asset('/brand/ranching-wildlife-tile.png')})` }}
-        />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

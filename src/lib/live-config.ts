@@ -11,10 +11,9 @@ export interface LiveTournament {
   name: string
 }
 
-// Currently aimed at the 2025 HLSR Target competition, which has completed
-// brackets in every class — useful for testing the board end to end.
-// Swap in the live tournament id on event day.
+// Aimed at the 2026 Target competition (completed brackets in every class) for
+// testing the board end to end. Swap in the live tournament id on event day.
 export const LIVE_TOURNAMENT: LiveTournament | null = {
-  id: 'Wk1VVU9WL2EzL04yYUFRVDdKdXYyZz09',
-  name: 'HLSR Archery Competition',
+  id: 'dnlSWGkxeXhiTXNZSHk4RFpZVVBVZz09',
+  name: 'Houston Livestock Show and Rodeo Archery Competition',
 }
