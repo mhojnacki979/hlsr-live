@@ -2029,3 +2029,31 @@ a.button:hover {
   color: #fff;
   border-color: var(--accent-border);
 }
+
+/* Qualification / Brackets view switch */
+.board-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-right: 0.3rem;
+}
+
+.board-view-btn {
+  font-family: var(--font-condensed);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.board-view-btn[aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}
