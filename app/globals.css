@@ -2057,3 +2057,67 @@ a.button:hover {
   background: var(--accent);
   color: #fff;
 }
+
+/* Podium line above each class's bracket — readable from across the room */
+.board-podium {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.board-podium-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+}
+
+.board-podium-item.is-gold {
+  border-left-color: var(--gold);
+}
+
+.board-podium-item.is-silver {
+  border-left-color: var(--silver);
+}
+
+.board-podium-item.is-bronze {
+  border-left-color: var(--bronze);
+}
+
+.board-podium-place {
+  font-family: var(--font-condensed);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.is-gold .board-podium-place {
+  color: var(--gold);
+}
+
+.is-silver .board-podium-place {
+  color: var(--silver);
+}
+
+.is-bronze .board-podium-place {
+  color: var(--bronze);
+}
+
+.board-podium-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #fff;
+}
+
+.is-gold .board-podium-name {
+  font-size: 1.35rem;
+}

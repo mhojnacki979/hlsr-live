@@ -145,7 +145,9 @@ export function getPlacings(division: EventDivision, limit = 8): Placing[] {
     add(row.name, row.score, 'qualification')
   }
 
-  return placings
+  // Places 1-4 come straight off the gold and bronze matches, so a limit below
+  // four has to be applied here rather than in the loops above.
+  return placings.slice(0, limit)
 }
 
 function matchWinner(m: BracketMatch): string | null {

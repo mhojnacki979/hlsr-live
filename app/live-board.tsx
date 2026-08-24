@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DivisionBracket } from '@/components/event/division-bracket'
 import type { EventDivision } from '@/data/events'
+import { getPlacings } from '@/data/events'
 import { asset } from '@/lib/asset'
 import { fetchLive } from '@/lib/eos'
 import type { LiveTournament } from '@/lib/live-config'
@@ -15,8 +16,38 @@ const STANDINGS_LIMIT = 8
 /** Qualification scores, or the elimination brackets. */
 type BoardView = 'qualification' | 'brackets'
 
+/** Medal styling for the podium line. */
+const MEDAL_CLASS = ['is-gold', 'is-silver', 'is-bronze'] as const
+
 function clockTime(ms: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+function ordinal(place: number): string {
+  const suffix = ['th', 'st', 'nd', 'rd'][place % 10] ?? 'th'
+  return `${place}${suffix}`
+}
+
+/**
+ * Podium line above a class's bracket.
+ *
+ * Only rendered once the class actually has a champion — mid-event the gold
+ * match has no winner yet, so naming a 1st place would be wrong.
+ */
+function Podium({ division }: { division: EventDivision }) {
+  if (division.champion === null) return null
+  const places = getPlacings(division, 3)
+  if (places.length === 0) return null
+  return (
+    <ol className="board-podium" aria-label={`${division.name} placings`}>
+      {places.map((p) => (
+        <li className={`board-podium-item ${MEDAL_CLASS[p.place - 1] ?? ''}`} key={p.name}>
+          <span className="board-podium-place">{ordinal(p.place)}</span>
+          <span className="board-podium-name">{p.name}</span>
+        </li>
+      ))}
+    </ol>
+  )
 }
 
 /**
@@ -200,7 +231,10 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
                 )}
               </h2>
               {showBracket ? (
-                <DivisionBracket division={division} />
+                <>
+                  <Podium division={division} />
+                  <DivisionBracket division={division} />
+                </>
               ) : (
                 <Standings
                   division={division}
