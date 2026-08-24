@@ -1,15 +1,14 @@
 /** @type {import('next').NextConfig} */
 
-// GitHub Pages project site — served from /<repo>/. Set BASE_PATH='' for a
-// custom domain (or for local preview at the root).
-const basePath = process.env.BASE_PATH ?? '/hlsr-live'
+// Served from the root of its own domain (hlsrlive.eyesonscore.com), so no base
+// path. Set BASE_PATH='/hlsr-live' to build for the github.io project URL.
+const basePath = process.env.BASE_PATH ?? ''
 
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
   images: { unoptimized: true },
-  basePath,
-  assetPrefix: basePath || undefined,
+  ...(basePath !== '' ? { basePath, assetPrefix: basePath } : {}),
   // Exposed so plain <img> srcs can be basePath-prefixed.
   env: { NEXT_PUBLIC_BASE_PATH: basePath },
 }
