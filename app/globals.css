@@ -2009,3 +2009,23 @@ a.button:hover {
   }
 }
 
+
+/* Cross-link back to the full results site */
+.board-results-link {
+  font-family: var(--font-condensed);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  margin-right: 0.3rem;
+}
+
+.board-results-link:hover {
+  text-decoration: none;
+  color: #fff;
+  border-color: var(--accent-border);
+}

@@ -122,6 +122,9 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
             </div>
           </div>
           <div className="board-status">
+            <a className="board-results-link" href="https://hlsr.eyesonscore.com">
+              Full Results
+            </a>
             <span className="live-dot" aria-hidden="true" />
             <span className="live-label">Live</span>
             {updatedAt !== null && (
