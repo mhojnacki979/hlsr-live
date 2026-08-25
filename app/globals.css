@@ -21,11 +21,11 @@
   --navy: #1b2a63;
   --navy-deep: #0f1840;
   --navy-line: #2a3a7a;
-  /* HLSR orange, sampled from the badge lettering — the brand accent.
+  /* HLSR orange accent — the brand accent.
      (Token is still named --red for historical reasons; ~15 rules use it.) */
-  --red: #f07724;
-  --red-soft: rgba(240, 119, 36, 0.14);
-  --red-border: rgba(240, 119, 36, 0.45);
+  --red: #ef7622;
+  --red-soft: rgba(239, 118, 34, 0.14);
+  --red-border: rgba(239, 118, 34, 0.45);
   --gold: #e0a92e;
   --silver: #c9ccd4;
   --bronze: #cd7f32;
@@ -375,14 +375,14 @@ a.button:hover {
   height: 0.6rem;
   border-radius: 50%;
   background: var(--red);
-  box-shadow: 0 0 0 0 rgba(51, 153, 102, 0.6);
+  box-shadow: 0 0 0 0 rgba(239, 118, 34, 0.6);
   animation: live-pulse 1.6s infinite;
 }
 
 @keyframes live-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(51, 153, 102, 0.55); }
-  70% { box-shadow: 0 0 0 0.5rem rgba(51, 153, 102, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(51, 153, 102, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(239, 118, 34, 0.55); }
+  70% { box-shadow: 0 0 0 0.5rem rgba(239, 118, 34, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 118, 34, 0); }
 }
 
 .live-label {
@@ -818,7 +818,7 @@ a.button:hover {
   text-transform: uppercase;
   color: var(--text);
   background-color: var(--surface);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23339966' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ef7622' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.9rem center;
   border: 1px solid var(--border-strong);
