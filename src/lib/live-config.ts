@@ -9,6 +9,15 @@
 export interface LiveTournament {
   id: string
   name: string
+  /**
+   * Whether this tournament's qualification scores may be shown.
+   *
+   * HLSR asked that 3D qualification not be published — only the Sunday
+   * brackets. When false the board hides the Qualification view entirely and
+   * never renders a score list, so pointing the board at the 3D tournament is
+   * safe.
+   */
+  publishQualification?: boolean
 }
 
 // Aimed at the 2026 Target competition (completed brackets in every class) for

@@ -83,6 +83,8 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
   const pausedByButton = useRef(false)
   const resumeTimer = useRef<number | null>(null)
 
+  const hideQuals = tournament?.publishQualification === false
+
   useAutoScroll(autoScroll)
 
   // A viewer scrolling by hand takes over, then the loop resumes once they stop.
@@ -132,7 +134,7 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
           const anyBracket = data.divisions.some(
             (d) => d.bracket !== null && d.bracket.rounds.length > 0,
           )
-          setView(anyBracket ? 'brackets' : 'qualification')
+          setView(hideQuals || anyBracket ? 'brackets' : 'qualification')
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Could not reach Eyes on Score')
@@ -172,6 +174,7 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
             </div>
           </div>
           <div className="board-status">
+            {!hideQuals && (
             <div className="board-view-toggle" role="tablist" aria-label="Board view">
               {(['qualification', 'brackets'] as const).map((mode) => (
                 <button
@@ -189,6 +192,7 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
                 </button>
               ))}
             </div>
+            )}
             <a className="board-results-link" href="https://hlsr.eyesonscore.com">
               Full Results
             </a>
@@ -222,7 +226,7 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
             <section className="board-class" key={division.name}>
               <h2 className="board-class-name">
                 {division.name}
-                {view === 'qualification' ? (
+                {!hideQuals && view === 'qualification' ? (
                   <span className="board-class-tag">
                     {archers} {archers === 1 ? 'archer' : 'archers'}
                   </span>
@@ -235,6 +239,8 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
                   <Podium division={division} />
                   <DivisionBracket division={division} />
                 </>
+              ) : hideQuals ? (
+                <p className="board-empty">Brackets begin Sunday.</p>
               ) : (
                 <Standings
                   division={division}
