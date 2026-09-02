@@ -6,6 +6,7 @@ import type { EventDivision } from '@/data/events'
 import { getPlacings } from '@/data/events'
 import { asset } from '@/lib/asset'
 import { fetchLive } from '@/lib/eos'
+import { EVENT_DATES } from '@/lib/live-config'
 import type { LiveTournament } from '@/lib/live-config'
 import { RESUME_AFTER_IDLE_MS, useAutoScroll } from '@/lib/use-auto-scroll'
 
@@ -76,6 +77,8 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
   const [divisions, setDivisions] = useState<EventDivision[]>([])
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Distinguishes "still fetching" from "fetched, but nothing entered yet".
+  const [loaded, setLoaded] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   // null until the first load picks a sensible default; an explicit choice sticks.
   const [view, setView] = useState<BoardView | null>(null)
@@ -128,6 +131,7 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
         setDivisions(data.divisions)
         setUpdatedAt(data.updatedAt)
         setError(null)
+        setLoaded(true)
         // Follow the event: qualification until the first bracket appears. Once
         // someone picks a view by hand, leave it alone.
         if (!chosenByHand.current) {
@@ -214,7 +218,11 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
 
       <main className="board">
         {error !== null && <p className="board-error">{error}</p>}
-        {divisions.length === 0 && error === null && <p className="board-empty">Loading scores…</p>}
+        {divisions.length === 0 && error === null && (
+          <p className="board-empty">
+            {loaded ? `Competition begins ${EVENT_DATES} — scores appear here live.` : 'Loading scores…'}
+          </p>
+        )}
 
         {divisions.map((division) => {
           const hasBracket = division.bracket !== null && division.bracket.rounds.length > 0
