@@ -101,6 +101,13 @@ function bracketLosers(division: EventDivision): EliminatedShooter[] {
  * further losers, so the rest of the eight fill from qualification rank.
  */
 export function getPlacings(division: EventDivision, limit = 8): Placing[] {
+  // Nothing has been shot yet. EOS loads the entry roster well before the first
+  // arrow, and until then every archer sits on score 0 at rank 1 — so any
+  // "placing" derived from it would just be roster order with medals on it.
+  // A class with no bracket and nobody scored has no result to report.
+  const scored = division.qualification.some((r) => r.score > 0)
+  if (division.bracket === null && !scored) return []
+
   const placings: Placing[] = []
   const taken = new Set<string>()
 
