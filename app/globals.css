@@ -1867,6 +1867,15 @@ a.button:hover {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  /* Without this the control row stays one 469px line and pushes the whole
+     board sideways on a phone, putting Pause off the right edge. */
+  flex-wrap: wrap;
+}
+
+.board-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .board-updated {
@@ -2005,7 +2014,39 @@ a.button:hover {
 
 @media (max-width: 600px) {
   .board-badge {
-    height: 3.2rem;
+    height: 2.6rem;
+  }
+  /* Phone layout: brand on one line, controls on their own full-width row
+     underneath. Keeps the header short so the board itself gets the screen. */
+  .board-header-inner {
+    padding: 0.55rem 0.85rem;
+    gap: 0.55rem;
+  }
+  .board-brand {
+    gap: 0.6rem;
+  }
+  .board-status {
+    width: 100%;
+    gap: 0.4rem 0.5rem;
+  }
+  /* The updated stamp is the one thing worth dropping when space is tight —
+     the Live dot already says the board is current. */
+  .board-updated {
+    display: none;
+  }
+  .board-results-link,
+  .board-view-btn,
+  .board-toggle {
+    font-size: 0.7rem;
+    padding: 0.28rem 0.6rem;
+  }
+  .board-results-link,
+  .board-view-toggle {
+    margin-right: 0;
+  }
+  /* Push Pause to the far end so it never crowds the view switch. */
+  .board-toggle {
+    margin-left: auto;
   }
 }
 

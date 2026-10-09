@@ -200,8 +200,12 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
             <a className="board-results-link" href="https://hlsr.eyesonscore.com">
               Full Results
             </a>
-            <span className="live-dot" aria-hidden="true" />
-            <span className="live-label">Live</span>
+            {/* Dot and label must wrap as one unit, or the phone header
+                splits them across two rows. */}
+            <span className="board-live">
+              <span className="live-dot" aria-hidden="true" />
+              <span className="live-label">Live</span>
+            </span>
             {updatedAt !== null && (
               <span className="board-updated">Updated {clockTime(updatedAt)}</span>
             )}
