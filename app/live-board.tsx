@@ -5,7 +5,7 @@ import { DivisionBracket } from '@/components/event/division-bracket'
 import type { EventDivision } from '@/data/events'
 import { getPlacings } from '@/data/events'
 import { asset } from '@/lib/asset'
-import { fetchLive } from '@/lib/eos'
+import { EosUnavailableError, fetchLive } from '@/lib/eos'
 import { EVENT_DATES } from '@/lib/live-config'
 import type { LiveTournament } from '@/lib/live-config'
 import { RESUME_AFTER_IDLE_MS, useAutoScroll } from '@/lib/use-auto-scroll'
@@ -141,7 +141,16 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
           setView(hideQuals || anyBracket ? 'brackets' : 'qualification')
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Could not reach Eyes on Score')
+        // Only EOS's own wording is fit for the board; anything else is a bug
+        // in our code and must not put a stack message on a venue screen.
+        if (!cancelled) {
+          setError(
+            e instanceof EosUnavailableError
+              ? e.message
+              : 'Scores are temporarily unavailable. Retrying…',
+          )
+          if (!(e instanceof EosUnavailableError)) console.error('[live-board]', e)
+        }
       }
     }
 
@@ -221,7 +230,14 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
       </header>
 
       <main className="board">
-        {error !== null && <p className="board-error">{error}</p>}
+        {/* A hiccup with scores already on screen is a footnote, not a wall —
+            the board keeps showing the last good data underneath. */}
+        {error !== null &&
+          (divisions.length > 0 ? (
+            <p className="board-stale">{error} Showing the last scores received.</p>
+          ) : (
+            <p className="board-error">{error}</p>
+          ))}
         {divisions.length === 0 && error === null && (
           <p className="board-empty">
             {loaded ? `Competition begins ${EVENT_DATES} — scores appear here live.` : 'Loading scores…'}

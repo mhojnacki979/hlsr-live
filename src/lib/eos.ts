@@ -10,26 +10,69 @@ import type { BracketMatch, BracketShooter, EventBracket, EventDivision } from '
 const API = 'https://api.eyesonscore.com/api'
 const TOKEN = 'Bearer 08a42685c4d02c948fd16848e38e194bab23d2ba90d390e14b772122f631c3b0b18f8cc3170040fa'
 
+/**
+ * A failure fit to show a spectator.
+ *
+ * EOS does not always answer with JSON — when it is rate-limiting, down, or
+ * behind an error page it returns HTML, and `res.json()` then throws a raw
+ * `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. That string used
+ * to go straight onto the venue screen. Everything that leaves this module is
+ * phrased for the person reading the board; the technical detail goes to the
+ * console for whoever is debugging.
+ */
+export class EosUnavailableError extends Error {
+  constructor(message: string, detail?: unknown) {
+    super(message)
+    this.name = 'EosUnavailableError'
+    if (detail !== undefined) console.error('[eos]', detail)
+  }
+}
+
+async function request(path: string, init: RequestInit): Promise<any> {
+  let res: Response
+  try {
+    res = await fetch(`${API}/${path}`, init)
+  } catch (e) {
+    throw new EosUnavailableError('Cannot reach Eyes on Score. Retrying…', e)
+  }
+
+  // Read as text first: a non-JSON body is the common failure, not the rare one.
+  const body = await res.text()
+  let json: any
+  try {
+    json = JSON.parse(body)
+  } catch {
+    throw new EosUnavailableError(
+      res.status === 429
+        ? 'Eyes on Score is busy. Scores will refresh shortly.'
+        : 'Eyes on Score is not responding. Scores will refresh shortly.',
+      `${path} -> HTTP ${res.status}, non-JSON body: ${body.slice(0, 120)}`,
+    )
+  }
+
+  if (json.status_code !== 200) {
+    throw new EosUnavailableError(
+      'Scores are temporarily unavailable. Retrying…',
+      `${path} -> ${json.message ?? `status_code ${json.status_code}`}`,
+    )
+  }
+  return json.data
+}
+
 async function post(path: string): Promise<any> {
-  const res = await fetch(`${API}/${path}`, {
+  return request(path, {
     method: 'POST',
     headers: { Authorization: TOKEN, 'Content-Type': 'application/json' },
   })
-  const json = await res.json()
-  if (json.status_code !== 200) throw new Error(json.message ?? `EOS ${res.status}`)
-  return json.data
 }
 
 /** Some EOS endpoints (shooter detail) expect form-encoded bodies. */
 async function postForm(path: string, body: Record<string, string>): Promise<any> {
-  const res = await fetch(`${API}/${path}`, {
+  return request(path, {
     method: 'POST',
     headers: { Authorization: TOKEN, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(body).toString(),
   })
-  const json = await res.json()
-  if (json.status_code !== 200) throw new Error(json.message ?? `EOS ${res.status}`)
-  return json.data
 }
 
 function toInt(v: unknown): number {
