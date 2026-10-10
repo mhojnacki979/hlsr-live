@@ -10,7 +10,16 @@ import { EVENT_DATES } from '@/lib/live-config'
 import type { LiveTournament } from '@/lib/live-config'
 import { RESUME_AFTER_IDLE_MS, useAutoScroll } from '@/lib/use-auto-scroll'
 
-const POLL_MS = 20_000
+/**
+ * How often each viewer asks EOS for fresh scores.
+ *
+ * This multiplies by the number of phones in the building — at 20s, a hundred
+ * spectators alone were 5 requests/sec against the single Linode that also
+ * serves the API, the website and the database, and it was already answering
+ * some requests with 429. At 60s the same crowd costs 1.7/sec, and nobody
+ * watching a bracket notices the difference.
+ */
+const POLL_MS = 60_000
 /** Leaders shown for a class that has not started eliminations yet. */
 const STANDINGS_LIMIT = 8
 
