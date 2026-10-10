@@ -2175,3 +2175,41 @@ a.button:hover {
 .is-gold .board-podium-name {
   font-size: 1.35rem;
 }
+
+/* ---------- Arrow progress (XX/60) on the standings rows ----------------- */
+
+/* Sits between the name and the score. The name flexes, so this stays right
+   of it and left of the total without disturbing the existing layout. */
+.board-arrows {
+  flex: none;
+  font-family: var(--font-condensed);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+/* Finished, and not-yet-started, are both quiet. Only the part-shot archers
+   are called out, because only their score reads as worse than it is. */
+.board-arrows.is-done,
+.board-arrows.is-waiting {
+  color: var(--text-muted);
+}
+
+/* Still shooting is the one worth noticing: a low score here means a round
+   outstanding, not a bad performance. */
+.board-arrows.is-shooting {
+  color: var(--accent);
+  border-color: var(--accent-border, var(--accent));
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .board-arrows {
+    font-size: 0.7rem;
+    padding: 0.08rem 0.35rem;
+  }
+}

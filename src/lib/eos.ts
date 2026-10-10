@@ -170,6 +170,8 @@ export async function fetchLive(
         avg: String(r.avg_count ?? r.arr_avg ?? ''),
         score: toInt(r.total_score),
         shooterId: String(r.shooter_id ?? ''),
+        arrows: toInt(r.total_attended_arrows_count),
+        arrowsTotal: toInt(r.total_arrow_count),
       }))
 
       // Bracket (only if this division's elimination has started).

@@ -65,6 +65,30 @@ function Podium({ division }: { division: EventDivision }) {
  * under Brackets view; in Qualification view every archer is shown so anyone can
  * find their own name.
  */
+/**
+ * Arrows shot out of arrows in the round — "15/60".
+ *
+ * Read from across a room, the standings otherwise mislead: a 122 from 15
+ * arrows sits in the same ordered list as a 486 from 60 with nothing to say
+ * one archer is a round behind rather than losing by 364. Still-shooting is
+ * the state worth calling out; finished is the quiet one.
+ */
+function ArrowCount({ shot, total }: { shot?: number; total?: number }) {
+  if (total === undefined || total <= 0) return null
+  const n = shot ?? 0
+  // Three states, not two. An archer on 0 has not started; highlighting them
+  // would drown out the genuinely part-shot archers, whose score misleads.
+  const state = n >= total ? 'done' : n === 0 ? 'waiting' : 'shooting'
+  return (
+    <span
+      className={`board-arrows is-${state}`}
+      title={state === 'done' ? 'Round complete' : `${total - n} arrows remaining`}
+    >
+      {n}/{total}
+    </span>
+  )
+}
+
 function Standings({ division, limit }: { division: EventDivision; limit?: number }) {
   const sorted = [...division.qualification].sort((a, b) => a.rank - b.rank)
   const rows = limit === undefined ? sorted : sorted.slice(0, limit)
@@ -75,6 +99,7 @@ function Standings({ division, limit }: { division: EventDivision; limit?: numbe
         <li className="board-standing" key={`${r.rank}-${r.name}`}>
           <span className="board-standing-rank">{r.rank}</span>
           <span className="board-standing-name">{r.name}</span>
+          <ArrowCount shot={r.arrows} total={r.arrowsTotal} />
           <span className="board-standing-score">{r.score}</span>
         </li>
       ))}

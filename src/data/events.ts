@@ -12,6 +12,15 @@ export interface EventQualRow {
   name: string
   avg: string
   score: number
+  /**
+   * Arrows shot so far, and arrows in the full round.
+   *
+   * Without these the standings mislead: a 122 from 15 arrows sits in the same
+   * ordered table as a 486 from 60, and nothing on screen says one archer is a
+   * round behind rather than losing by 364.
+   */
+  arrows?: number
+  arrowsTotal?: number
 }
 
 /** One archer's side of a head-to-head match. */
