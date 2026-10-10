@@ -2213,3 +2213,34 @@ a.button:hover {
     padding: 0.08rem 0.35rem;
   }
 }
+
+/* ---------- Narrow phones: give the name the whole line ------------------- */
+
+/* The arrow badge sits between the name and the score, which on a narrow
+   screen takes its width straight out of the name — 17 of 245 names were
+   being clipped at 320px. Below 400px the badge drops to its own line,
+   indented under the name, and the name is allowed to wrap rather than be
+   cut. Nothing is ever truncated; only long names cost a second line. */
+@media (max-width: 400px) {
+  .board-standing {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .board-standing-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+
+  .board-arrows {
+    order: 5;
+    flex-basis: 100%;
+    /* Indent with padding, not margin: a 100% basis plus a left margin is
+       wider than the row and pushes the whole page sideways. */
+    box-sizing: border-box;
+    padding-left: calc(1.8rem + 0.8rem);
+    border: none;
+  }
+}
