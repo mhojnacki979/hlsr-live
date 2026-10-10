@@ -135,19 +135,23 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
 
     const load = async (): Promise<void> => {
       try {
-        const data = await fetchLive(tournament.id)
+        // Only pay for bracket requests when they are on screen. In
+        // qualification this turns 25 requests per poll into 1.
+        const data = await fetchLive(tournament.id, {
+          withBrackets: view === 'brackets' || hideQuals,
+        })
         if (cancelled) return
         setDivisions(data.divisions)
         setUpdatedAt(data.updatedAt)
         setError(null)
         setLoaded(true)
-        // Follow the event: qualification until the first bracket appears. Once
+        // Follow the event: qualification until eliminations begin. Once
         // someone picks a view by hand, leave it alone.
         if (!chosenByHand.current) {
           const anyBracket = data.divisions.some(
             (d) => d.bracket !== null && d.bracket.rounds.length > 0,
           )
-          setView(hideQuals || anyBracket ? 'brackets' : 'qualification')
+          setView(hideQuals || data.eliminationsStarted || anyBracket ? 'brackets' : 'qualification')
         }
       } catch (e) {
         // Only EOS's own wording is fit for the board; anything else is a bug
@@ -169,7 +173,10 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
       cancelled = true
       clearInterval(timer)
     }
-  }, [tournament])
+    // `view` is a dependency on purpose: choosing Brackets refetches straight
+    // away with bracket data, rather than leaving the viewer on an empty tab
+    // until the next poll.
+  }, [tournament, view, hideQuals])
 
   if (tournament === null) {
     return (

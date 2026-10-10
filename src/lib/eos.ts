@@ -113,18 +113,56 @@ function toMatches(shooters: any[]): BracketMatch[] {
 export interface LiveData {
   divisions: EventDivision[]
   updatedAt: number
+  /** Any division has a round beyond Qualification — eliminations are under way. */
+  eliminationsStarted: boolean
 }
 
-/** Fetch a live snapshot: qualification standings + bracket per division. */
-export async function fetchLive(tournamentId: string): Promise<LiveData> {
+/**
+ * Whether this division has progressed past qualification.
+ *
+ * EOS lists one entry per stage in `elimination_round_list`, and qualification
+ * is itself listed as a stage — so a lone "Qualification" entry means nobody
+ * has shot a head-to-head yet and there is no bracket to fetch.
+ */
+export function hasEliminationRound(group: any): boolean {
+  const list = group?.elimination_round_list
+  if (!Array.isArray(list)) return false
+  return list.some((r) => {
+    const name = String(r?.tournament_name ?? '').trim().toLowerCase()
+    // An unnamed entry is not evidence of a round: treating "" as a real round
+    // would fetch every bracket and force the Brackets view off a malformed row.
+    return name !== '' && name !== 'qualification'
+  })
+}
+
+/**
+ * Fetch a live snapshot: qualification standings, plus a bracket per division.
+ *
+ * The bracket layout is a SEPARATE request per division — 24 of them for the
+ * HLSR Target tournament, fired at once — so a naive poll costs 25 requests
+ * per viewer and opens 24 simultaneous connections. Multiplied by a venue full
+ * of phones that is what trips rate limiting, so brackets are fetched only for
+ * divisions that have actually reached eliminations.
+ *
+ * `withBrackets` overrides that and fetches every division. The Brackets tab
+ * passes it, so if the round-list signal above is ever wrong, choosing that tab
+ * still shows real brackets — a wrong guess costs a delayed auto-switch, never
+ * missing data.
+ */
+export async function fetchLive(
+  tournamentId: string,
+  opts: { withBrackets?: boolean } = {},
+): Promise<LiveData> {
   const qual = await post(
     `tournament_score_list?is_private=false&id=${tournamentId}&for_fav=true`,
   )
   const sorting = qual.sortingResult ?? {}
   const groups = Object.keys(sorting)
+  const eliminationsStarted = groups.some((g) => hasEliminationRound(sorting[g]))
 
   const divisions = await Promise.all(
     groups.map(async (group) => {
+      const wantBracket = opts.withBrackets === true || hasEliminationRound(sorting[group])
       const rows = rowsOf(sorting, group)
       const qualification = rows.map((r) => ({
         rank: toInt(r.rank),
@@ -138,7 +176,7 @@ export async function fetchLive(tournamentId: string): Promise<LiveData> {
       let bracket: EventBracket | null = null
       let champion: string | null = null
       const shooterId = String(rows[0]?.shooter_id ?? '')
-      if (shooterId !== '') {
+      if (wantBracket && shooterId !== '') {
         const layout = await post(
           `tournament_group_bracket_layout?id=${tournamentId}&shooter_id=${encodeURIComponent(shooterId)}`,
         ).catch(() => null)
@@ -160,7 +198,7 @@ export async function fetchLive(tournamentId: string): Promise<LiveData> {
     }),
   )
 
-  return { divisions, updatedAt: Date.now() }
+  return { divisions, updatedAt: Date.now(), eliminationsStarted }
 }
 
 export interface EndScore {
