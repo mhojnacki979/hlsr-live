@@ -1944,7 +1944,11 @@ a.button:hover {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* One archer per line, always. A multi-column auto-fill grid packed the rows
+     into ~280px columns as soon as the container cleared 570px — a landscape
+     phone, a tablet, the venue screen — which left the name about 110px and
+     ellipsised most of the field. Nobody reads this board in columns. */
+  grid-template-columns: 1fr;
   gap: 0.4rem;
 }
 
