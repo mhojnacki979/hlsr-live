@@ -306,6 +306,13 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
 
         {blocks.map(({ tournament, divisions }) => {
           const hideQuals = tournament.publishQualification === false
+          // A competition with no brackets anywhere is a qualification result
+          // and nothing else — 3D is shot once and the scores stand. Showing it
+          // the Brackets way would label finished classes "Not started" and cut
+          // each one to its leaders, so it keeps its own full standings
+          // whichever view the board is on.
+          const bracketed = divisions.some((d) => d.bracket !== null && d.bracket.rounds.length > 0)
+          const compView = bracketed ? view : 'qualification'
           return (
             <section className="board-competition" key={tournament.id}>
               {/* Named on every block, so a viewer joining the scroll part-way
@@ -319,13 +326,13 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
                   // Qualification view always shows scores, every archer. Brackets
                   // view shows the tree, falling back to the leaders where none
                   // exists yet.
-                  const showBracket = view === 'brackets' && hasBracket
+                  const showBracket = compView === 'brackets' && hasBracket
                   const archers = division.qualification.length
                   return (
                     <section className="board-class" key={division.name}>
                       <h3 className="board-class-name">
                         {division.name}
-                        {!hideQuals && view === 'qualification' ? (
+                        {!hideQuals && compView === 'qualification' ? (
                           <span className="board-class-tag">
                             {archers} {archers === 1 ? 'archer' : 'archers'}
                           </span>
@@ -343,7 +350,7 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
                       ) : (
                         <Standings
                           division={division}
-                          limit={view === 'qualification' ? undefined : STANDINGS_LIMIT}
+                          limit={compView === 'qualification' ? undefined : STANDINGS_LIMIT}
                         />
                       )}
                     </section>
