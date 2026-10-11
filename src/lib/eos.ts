@@ -151,10 +151,12 @@ export function hasEliminationRound(group: any): boolean {
  */
 export async function fetchLive(
   tournamentId: string,
-  opts: { withBrackets?: boolean } = {},
+  opts: { withBrackets?: boolean; privateScores?: boolean; roundArrows?: number } = {},
 ): Promise<LiveData> {
+  // EOS holds some tournaments private; their public read returns nothing at
+  // all, so the flag has to match how the tournament is set up.
   const qual = await post(
-    `tournament_score_list?is_private=false&id=${tournamentId}&for_fav=true`,
+    `tournament_score_list?is_private=${opts.privateScores === true}&id=${tournamentId}&for_fav=true`,
   )
   const sorting = qual.sortingResult ?? {}
   const groups = Object.keys(sorting)
@@ -171,7 +173,8 @@ export async function fetchLive(
         score: toInt(r.total_score),
         shooterId: String(r.shooter_id ?? ''),
         arrows: toInt(r.total_attended_arrows_count),
-        arrowsTotal: toInt(r.total_arrow_count),
+        // A 3D round is set to 25 for the shoot-down but scored over 20.
+        arrowsTotal: opts.roundArrows ?? toInt(r.total_arrow_count),
       }))
 
       // Bracket (only if this division's elimination has started).

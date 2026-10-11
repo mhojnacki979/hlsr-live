@@ -107,7 +107,10 @@ function Standings({ division, limit }: { division: EventDivision; limit?: numbe
   )
 }
 
-export function LiveBoard({ tournament }: { tournament: LiveTournament | null }) {
+export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
+  // Which competition is on screen. Both are listed; the board polls one.
+  const [activeId, setActiveId] = useState<string | null>(tournaments[0]?.id ?? null)
+  const tournament = tournaments.find((t) => t.id === activeId) ?? null
   const [divisions, setDivisions] = useState<EventDivision[]>([])
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -164,6 +167,8 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
         // qualification this turns 25 requests per poll into 1.
         const data = await fetchLive(tournament.id, {
           withBrackets: view === 'brackets' || hideQuals,
+          ...(tournament.privateScores === true ? { privateScores: true } : {}),
+          ...(tournament.roundArrows !== undefined ? { roundArrows: tournament.roundArrows } : {}),
         })
         if (cancelled) return
         setDivisions(data.divisions)
@@ -203,6 +208,18 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
     // until the next poll.
   }, [tournament, view, hideQuals])
 
+  /** Switching competitions starts the board over rather than showing the other one's scores. */
+  const pickTournament = (id: string): void => {
+    if (id === activeId) return
+    setActiveId(id)
+    setDivisions([])
+    setUpdatedAt(null)
+    setError(null)
+    setLoaded(false)
+    chosenByHand.current = false
+    setView(null)
+  }
+
   if (tournament === null) {
     return (
       <main className="board">
@@ -228,6 +245,22 @@ export function LiveBoard({ tournament }: { tournament: LiveTournament | null })
             </div>
           </div>
           <div className="board-status">
+            {tournaments.length > 1 && (
+              <div className="board-view-toggle" role="tablist" aria-label="Competition">
+                {tournaments.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={t.id === activeId}
+                    className="board-view-btn"
+                    onClick={() => pickTournament(t.id)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {!hideQuals && (
             <div className="board-view-toggle" role="tablist" aria-label="Board view">
               {(['qualification', 'brackets'] as const).map((mode) => (
