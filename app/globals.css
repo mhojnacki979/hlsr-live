@@ -1910,6 +1910,25 @@ a.button:hover {
   padding: 1.5rem 1.25rem 5rem;
 }
 
+/* Every competition is on the one board, one after the other. This banner
+   marks where each begins, so a viewer joining the scroll part-way through
+   knows whether they are looking at Target or 3D. */
+.board-competition + .board-competition {
+  margin-top: 3.5rem;
+}
+
+.board-competition-name {
+  font-family: var(--font-condensed);
+  font-size: clamp(1.4rem, 3.4vw, 2.3rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 1.4rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
 .board-class {
   margin-bottom: 2.5rem;
 }

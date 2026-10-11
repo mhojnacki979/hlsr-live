@@ -23,6 +23,9 @@ const POLL_MS = 60_000
 /** Leaders shown for a class that has not started eliminations yet. */
 const STANDINGS_LIMIT = 8
 
+/** Shown in the header: the board carries every competition, not one of them. */
+const BOARD_TITLE = '2027 Archery Competition'
+
 /** Qualification scores, or the elimination brackets. */
 type BoardView = 'qualification' | 'brackets'
 
@@ -107,11 +110,16 @@ function Standings({ division, limit }: { division: EventDivision; limit?: numbe
   )
 }
 
+/** One competition's classes, in the order the board scrolls them. */
+interface Block {
+  tournament: LiveTournament
+  divisions: EventDivision[]
+}
+
 export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
-  // Which competition is on screen. Both are listed; the board polls one.
-  const [activeId, setActiveId] = useState<string | null>(tournaments[0]?.id ?? null)
-  const tournament = tournaments.find((t) => t.id === activeId) ?? null
-  const [divisions, setDivisions] = useState<EventDivision[]>([])
+  // Every competition is on the board at once: the scroll runs through the
+  // first, then straight into the next.
+  const [blocks, setBlocks] = useState<Block[]>([])
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Distinguishes "still fetching" from "fetched, but nothing entered yet".
@@ -122,8 +130,6 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
   const chosenByHand = useRef(false)
   const pausedByButton = useRef(false)
   const resumeTimer = useRef<number | null>(null)
-
-  const hideQuals = tournament?.publishQualification === false
 
   useAutoScroll(autoScroll)
 
@@ -158,30 +164,39 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
   }
 
   useEffect(() => {
-    if (tournament === null) return
+    if (tournaments.length === 0) return
     let cancelled = false
 
     const load = async (): Promise<void> => {
       try {
-        // Only pay for bracket requests when they are on screen. In
-        // qualification this turns 25 requests per poll into 1.
-        const data = await fetchLive(tournament.id, {
-          withBrackets: view === 'brackets' || hideQuals,
-          ...(tournament.privateScores === true ? { privateScores: true } : {}),
-          ...(tournament.roundArrows !== undefined ? { roundArrows: tournament.roundArrows } : {}),
-        })
+        // One score list per competition per poll. Bracket requests are only
+        // paid for when brackets are on screen — in qualification that keeps
+        // the whole board to one request per competition.
+        const loaded = await Promise.all(
+          tournaments.map(async (t) => ({
+            tournament: t,
+            data: await fetchLive(t.id, {
+              withBrackets: view === 'brackets' || t.publishQualification === false,
+              ...(t.privateScores === true ? { privateScores: true } : {}),
+              ...(t.roundArrows !== undefined ? { roundArrows: t.roundArrows } : {}),
+            }),
+          })),
+        )
         if (cancelled) return
-        setDivisions(data.divisions)
-        setUpdatedAt(data.updatedAt)
+        setBlocks(loaded.map(({ tournament, data }) => ({ tournament, divisions: data.divisions })))
+        setUpdatedAt(Math.max(...loaded.map(({ data }) => data.updatedAt)))
         setError(null)
         setLoaded(true)
-        // Follow the event: qualification until eliminations begin. Once
-        // someone picks a view by hand, leave it alone.
+        // Follow the event: qualification until eliminations begin anywhere.
+        // Once someone picks a view by hand, leave it alone.
         if (!chosenByHand.current) {
-          const anyBracket = data.divisions.some(
-            (d) => d.bracket !== null && d.bracket.rounds.length > 0,
+          const started = loaded.some(
+            ({ tournament, data }) =>
+              tournament.publishQualification === false ||
+              data.eliminationsStarted ||
+              data.divisions.some((d) => d.bracket !== null && d.bracket.rounds.length > 0),
           )
-          setView(hideQuals || data.eliminationsStarted || anyBracket ? 'brackets' : 'qualification')
+          setView(started ? 'brackets' : 'qualification')
         }
       } catch (e) {
         // Only EOS's own wording is fit for the board; anything else is a bug
@@ -206,21 +221,9 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
     // `view` is a dependency on purpose: choosing Brackets refetches straight
     // away with bracket data, rather than leaving the viewer on an empty tab
     // until the next poll.
-  }, [tournament, view, hideQuals])
+  }, [tournaments, view])
 
-  /** Switching competitions starts the board over rather than showing the other one's scores. */
-  const pickTournament = (id: string): void => {
-    if (id === activeId) return
-    setActiveId(id)
-    setDivisions([])
-    setUpdatedAt(null)
-    setError(null)
-    setLoaded(false)
-    chosenByHand.current = false
-    setView(null)
-  }
-
-  if (tournament === null) {
+  if (tournaments.length === 0) {
     return (
       <main className="board">
         <p className="board-empty">No event is live right now.</p>
@@ -241,27 +244,11 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
             />
             <div>
               <span className="board-kicker">Houston Livestock Show &amp; Rodeo</span>
-              <h1 className="board-title">{tournament.name}</h1>
+              <h1 className="board-title">{BOARD_TITLE}</h1>
             </div>
           </div>
           <div className="board-status">
-            {tournaments.length > 1 && (
-              <div className="board-view-toggle" role="tablist" aria-label="Competition">
-                {tournaments.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={t.id === activeId}
-                    className="board-view-btn"
-                    onClick={() => pickTournament(t.id)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {!hideQuals && (
+            {/* Applies to the whole board: every competition follows it. */}
             <div className="board-view-toggle" role="tablist" aria-label="Board view">
               {(['qualification', 'brackets'] as const).map((mode) => (
                 <button
@@ -279,7 +266,6 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
                 </button>
               ))}
             </div>
-            )}
             <a className="board-results-link" href="https://hlsr.eyesonscore.com">
               Full Results
             </a>
@@ -307,47 +293,62 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
         {/* A hiccup with scores already on screen is a footnote, not a wall —
             the board keeps showing the last good data underneath. */}
         {error !== null &&
-          (divisions.length > 0 ? (
+          (blocks.length > 0 ? (
             <p className="board-stale">{error} Showing the last scores received.</p>
           ) : (
             <p className="board-error">{error}</p>
           ))}
-        {divisions.length === 0 && error === null && (
+        {blocks.every((b) => b.divisions.length === 0) && error === null && (
           <p className="board-empty">
             {loaded ? `Competition begins ${EVENT_DATES} — scores appear here live.` : 'Loading scores…'}
           </p>
         )}
 
-        {divisions.map((division) => {
-          const hasBracket = division.bracket !== null && division.bracket.rounds.length > 0
-          // Qualification view always shows scores, every archer. Brackets view
-          // shows the tree, falling back to the leaders where none exists yet.
-          const showBracket = view === 'brackets' && hasBracket
-          const archers = division.qualification.length
+        {blocks.map(({ tournament, divisions }) => {
+          const hideQuals = tournament.publishQualification === false
           return (
-            <section className="board-class" key={division.name}>
-              <h2 className="board-class-name">
-                {division.name}
-                {!hideQuals && view === 'qualification' ? (
-                  <span className="board-class-tag">
-                    {archers} {archers === 1 ? 'archer' : 'archers'}
-                  </span>
-                ) : (
-                  !hasBracket && <span className="board-class-tag">Not started</span>
-                )}
-              </h2>
-              {showBracket ? (
-                <>
-                  <Podium division={division} />
-                  <DivisionBracket division={division} />
-                </>
-              ) : hideQuals ? (
-                <p className="board-empty">Brackets begin Sunday.</p>
+            <section className="board-competition" key={tournament.id}>
+              {/* Named on every block, so a viewer joining the scroll part-way
+                  through always knows which competition is on screen. */}
+              <h2 className="board-competition-name">{tournament.label}</h2>
+              {divisions.length === 0 ? (
+                <p className="board-empty">No scores yet.</p>
               ) : (
-                <Standings
-                  division={division}
-                  limit={view === 'qualification' ? undefined : STANDINGS_LIMIT}
-                />
+                divisions.map((division) => {
+                  const hasBracket = division.bracket !== null && division.bracket.rounds.length > 0
+                  // Qualification view always shows scores, every archer. Brackets
+                  // view shows the tree, falling back to the leaders where none
+                  // exists yet.
+                  const showBracket = view === 'brackets' && hasBracket
+                  const archers = division.qualification.length
+                  return (
+                    <section className="board-class" key={division.name}>
+                      <h3 className="board-class-name">
+                        {division.name}
+                        {!hideQuals && view === 'qualification' ? (
+                          <span className="board-class-tag">
+                            {archers} {archers === 1 ? 'archer' : 'archers'}
+                          </span>
+                        ) : (
+                          !hasBracket && <span className="board-class-tag">Not started</span>
+                        )}
+                      </h3>
+                      {showBracket ? (
+                        <>
+                          <Podium division={division} />
+                          <DivisionBracket division={division} />
+                        </>
+                      ) : hideQuals ? (
+                        <p className="board-empty">Brackets begin Sunday.</p>
+                      ) : (
+                        <Standings
+                          division={division}
+                          limit={view === 'qualification' ? undefined : STANDINGS_LIMIT}
+                        />
+                      )}
+                    </section>
+                  )
+                })
               )}
             </section>
           )
