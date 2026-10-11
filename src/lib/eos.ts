@@ -28,6 +28,20 @@ export class EosUnavailableError extends Error {
   }
 }
 
+/**
+ * EOS replied with its own JSON and a non-200 status.
+ *
+ * That is an answer, not a failed request: a class with no bracket comes back
+ * this way. The board may read it as "no bracket". A rate limit or a dropped
+ * connection is an EosUnavailableError and must never be read that way.
+ */
+export class EosAnsweredError extends EosUnavailableError {
+  constructor(message: string, detail?: unknown) {
+    super(message, detail)
+    this.name = 'EosAnsweredError'
+  }
+}
+
 async function request(path: string, init: RequestInit): Promise<any> {
   let res: Response
   try {
@@ -51,7 +65,10 @@ async function request(path: string, init: RequestInit): Promise<any> {
   }
 
   if (json.status_code !== 200) {
-    throw new EosUnavailableError(
+    // EOS answering with its own JSON is a real answer, not a failure of the
+    // request — "Archer not exists." is how a class with no bracket replies.
+    // Only this may be read as "no bracket"; a rate limit never may.
+    throw new EosAnsweredError(
       'Scores are temporarily unavailable. Retrying…',
       `${path} -> ${json.message ?? `status_code ${json.status_code}`}`,
     )
@@ -164,7 +181,12 @@ export async function fetchLive(
 
   const divisions = await Promise.all(
     groups.map(async (group) => {
-      const wantBracket = opts.withBrackets === true || hasEliminationRound(sorting[group])
+      // The score list already says whether this class has elimination rounds,
+      // and that costs nothing. Asking anyway put a request behind all 17 3D
+      // classes, which have no brackets and never will — 41 requests a poll
+      // against a 60-a-minute limit. Rate-limited bracket requests then came
+      // back as "no bracket" and the class rendered as if it had not started.
+      const wantBracket = hasEliminationRound(sorting[group])
       const rows = rowsOf(sorting, group)
       const qualification = rows.map((r) => ({
         rank: toInt(r.rank),
@@ -184,7 +206,13 @@ export async function fetchLive(
       if (wantBracket && shooterId !== '') {
         const layout = await post(
           `tournament_group_bracket_layout?id=${tournamentId}&shooter_id=${encodeURIComponent(shooterId)}`,
-        ).catch(() => null)
+        ).catch((e: unknown) => {
+          // A class with no bracket answers with EOS's own JSON. Anything else
+          // — a rate limit, a dropped connection — must surface, not quietly
+          // turn a bracketed class into "Not started" on the venue screen.
+          if (e instanceof EosAnsweredError) return null
+          throw e
+        })
         const result = layout?.result
         const rounds = result
           ? Object.entries(result)

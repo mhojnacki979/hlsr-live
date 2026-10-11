@@ -196,7 +196,13 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
               data.eliminationsStarted ||
               data.divisions.some((d) => d.bracket !== null && d.bracket.rounds.length > 0),
           )
-          setView(started ? 'brackets' : 'qualification')
+          // One way only. This runs on every poll, so setting it both ways let
+          // a single thin answer from EOS throw the board back to
+          // qualification mid-round — and from there the brackets it needed to
+          // recover were no longer being fetched. The event does not go back
+          // to qualification, so neither does the board.
+          if (started) setView('brackets')
+          else setView((current) => current ?? 'qualification')
         }
       } catch (e) {
         // Only EOS's own wording is fit for the board; anything else is a bug
