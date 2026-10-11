@@ -179,6 +179,7 @@ export function LiveBoard({ tournaments }: { tournaments: LiveTournament[] }) {
               withBrackets: view === 'brackets' || t.publishQualification === false,
               ...(t.privateScores === true ? { privateScores: true } : {}),
               ...(t.roundArrows !== undefined ? { roundArrows: t.roundArrows } : {}),
+              ...(t.finalsRoundId !== undefined ? { finalsRoundId: t.finalsRoundId } : {}),
             }),
           })),
         )

@@ -83,6 +83,72 @@ async function post(path: string): Promise<any> {
   })
 }
 
+async function get(path: string): Promise<any> {
+  return request(path, { method: 'GET', headers: { Authorization: TOKEN } })
+}
+
+/** Arrows shot and arrows in the match, per division, then per archer name. */
+type ArrowCounts = Map<string, Map<string, { shot: number; of: number }>>
+
+/**
+ * Arrow counts for every archer in the Finals round — one request, all classes.
+ *
+ * Null when they cannot be read; every final is then treated as undecided,
+ * because the only alternative is trusting EOS's leader flag.
+ */
+async function finalsArrowCounts(roundId: string): Promise<ArrowCounts | null> {
+  try {
+    const data = await get(`bracket_tournament_score_list?is_private=false&id=${roundId}&for_fav=true`)
+    const counts: ArrowCounts = new Map()
+    for (const group of Object.keys(data?.sortingResult ?? {})) {
+      const byName = new Map<string, { shot: number; of: number }>()
+      for (const r of rowsOf(data.sortingResult, group)) {
+        byName.set(nameKey(String(r.name ?? '')), {
+          shot: toInt(r.total_attended_arrows_count),
+          of: toInt(r.total_arrow_count),
+        })
+      }
+      counts.set(group, byName)
+    }
+    return counts
+  } catch {
+    return null
+  }
+}
+
+function nameKey(name: string): string {
+  return name.trim().toLowerCase()
+}
+
+function isArcher(name: string): boolean {
+  const key = nameKey(name)
+  return key !== '' && key !== 'bye'
+}
+
+/**
+ * Clear the winner flags on any final that is not finished.
+ *
+ * EOS marks whoever is AHEAD as a match's winner while it is still being shot,
+ * so a lead after two of three ends showed on the board as a won final and a
+ * named champion. Finished means every archer in the match has shot every
+ * arrow. A match against a BYE is a walkover, never shot, and keeps its winner.
+ */
+function holdUnfinishedFinals(
+  rounds: { matches: BracketMatch[] }[],
+  counts: Map<string, { shot: number; of: number }> | undefined,
+): void {
+  const final = rounds[rounds.length - 1]
+  for (const m of final?.matches ?? []) {
+    const sides = [m.a, m.b].filter((s): s is BracketShooter => s !== null && isArcher(s.name))
+    if (sides.length < 2) continue
+    const finished = sides.every((s) => {
+      const c = counts?.get(nameKey(s.name))
+      return c !== undefined && c.of > 0 && c.shot >= c.of
+    })
+    if (!finished) for (const s of sides) s.winner = false
+  }
+}
+
 /** Some EOS endpoints (shooter detail) expect form-encoded bodies. */
 async function postForm(path: string, body: Record<string, string>): Promise<any> {
   return request(path, {
@@ -168,7 +234,13 @@ export function hasEliminationRound(group: any): boolean {
  */
 export async function fetchLive(
   tournamentId: string,
-  opts: { withBrackets?: boolean; privateScores?: boolean; roundArrows?: number } = {},
+  opts: {
+    withBrackets?: boolean
+    privateScores?: boolean
+    roundArrows?: number
+    /** EOS id of the Finals round — see LiveTournament.finalsRoundId. */
+    finalsRoundId?: string
+  } = {},
 ): Promise<LiveData> {
   // EOS holds some tournaments private; their public read returns nothing at
   // all, so the flag has to match how the tournament is set up.
@@ -178,6 +250,11 @@ export async function fetchLive(
   const sorting = qual.sortingResult ?? {}
   const groups = Object.keys(sorting)
   const eliminationsStarted = groups.some((g) => hasEliminationRound(sorting[g]))
+  // One extra request a poll, and only once brackets are being shot.
+  const finalsCounts =
+    opts.finalsRoundId !== undefined && eliminationsStarted
+      ? await finalsArrowCounts(opts.finalsRoundId)
+      : undefined
 
   const divisions = await Promise.all(
     groups.map(async (group) => {
@@ -220,6 +297,7 @@ export async function fetchLive(
               .filter((r) => r.matches.length > 0)
           : []
         if (rounds.length > 0) {
+          if (opts.finalsRoundId !== undefined) holdUnfinishedFinals(rounds, finalsCounts?.get(group))
           bracket = { rounds }
           const final = rounds[rounds.length - 1]
           const gold = final?.matches[0]

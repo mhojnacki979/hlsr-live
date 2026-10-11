@@ -37,6 +37,14 @@ export interface LiveTournament {
    * "20/25 still shooting" and no division is ever treated as finished.
    */
   roundArrows?: number
+  /**
+   * EOS id of the bracket's Finals round, read for its arrow counts.
+   *
+   * EOS flags whoever is ahead of a match as its winner while it is still
+   * being shot. With this set, a final only counts as won once every archer in
+   * it has shot every arrow. It is the id EOS's own live-bracket page reads.
+   */
+  finalsRoundId?: string
 }
 
 // The 2027 competition — October 9-11, 2026, Reliant Center Hall A.
@@ -45,6 +53,7 @@ export const LIVE_TOURNAMENTS: LiveTournament[] = [
     id: 'MWNOdFN5WnJ4VFZmQThEUk9jNUVadz09',
     name: '2027 Houston Livestock Show and Rodeo Archery Competition',
     label: 'Target',
+    finalsRoundId: 'ZENxVmxXV0xUaE8wczdmMzhGNUZHdz09',
   },
   {
     id: 'UWcxL0RMaWx4RllZczhQU09yeVlTZz09',
