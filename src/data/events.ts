@@ -73,7 +73,7 @@ function nameKey(name: string): string {
   return name.trim().toLowerCase()
 }
 
-/** Qualification seed for an archer, used to break equal elimination scores. */
+/** Qualification rank for an archer — orders the losers of each elimination round. */
 function qualRank(division: EventDivision, name: string): number {
   const key = nameKey(name)
   const row = division.qualification.find((q) => nameKey(q.name) === key)
@@ -105,8 +105,7 @@ function bracketLosers(division: EventDivision): EliminatedShooter[] {
  *
  * 1-4 come from the final round: match 0 is the gold match (winner 1st, loser
  * 2nd), match 1 the bronze match (winner 3rd, loser 4th). Remaining places go to
- * the other bracket losers ranked by elimination score, ties broken by the
- * better qualification seed. Classes whose bracket was only four archers have no
+ * the other bracket losers, deepest round first, then by qualification rank. Classes whose bracket was only four archers have no
  * further losers, so the rest of the eight fill from qualification rank.
  */
 export function getPlacings(division: EventDivision, limit = 8): Placing[] {
@@ -139,15 +138,18 @@ export function getPlacings(division: EventDivision, limit = 8): Placing[] {
     if (loser !== null && loser !== undefined) add(loser.name, loser.score, 'bracket')
   }
 
-  // Places 5+ — World Archery order: the round you went out in first (a
-  // quarter-final loser always outranks a 1/8 loser), then your score in the
-  // match that eliminated you, then the better qualification seed.
+  // Places 5+ — the round you went out in first (a quarter-final loser always
+  // outranks a 1/8 loser), then QUALIFICATION order within that round. HLSR
+  // ranks places 5-8 on qualification score, then X count, then 10 count, and
+  // EOS's rank is already ordered on exactly those keys. This replaces World
+  // Archery order, which used the score of the match that eliminated you —
+  // that let a seed-8 who lost a high-scoring quarter-final finish 5th ahead
+  // of the seed-5 who lost a low-scoring one.
   const remaining = bracketLosers(division)
     .filter((e) => !taken.has(nameKey(e.shooter.name)))
     .sort(
       (a, b) =>
         b.roundIndex - a.roundIndex ||
-        b.shooter.score - a.shooter.score ||
         qualRank(division, a.shooter.name) - qualRank(division, b.shooter.name),
     )
   for (const { shooter } of remaining) {
