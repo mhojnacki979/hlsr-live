@@ -20,20 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # basePath defaults to /texas-ringer (project URL). For the custom domain,
-      # set basePath = '' in next.config.mjs and redeploy.
-      - run: pnpm build
+      # Retired 12 October 2026 after the 2027 event: the site now serves only a
+      # page pointing to the results on Eyes on Score. The app source is
+      # untouched — to bring it back, restore the pnpm install / build steps
+      # from git history and upload ./out again.
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out
+          path: ./shutdown
 
   deploy:
     needs: build
